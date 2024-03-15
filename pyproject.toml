@@ -1,0 +1,16 @@
+[project]
+name = "metatensor-lj-test"
+description = "TODO"
+version = "0.0.0"
+dependencies = [
+    "torch >=1.11",
+    "metatensor-torch >0.3.0-pre,<0.4.0"
+]
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools",
+    "wheel",
+    "torch >=1.11"
+]
