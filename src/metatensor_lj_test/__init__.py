@@ -62,7 +62,7 @@ def lennard_jones_model(
                 explicit_gradients=[],
             ),
         },
-        supported_devices=["cuda", "mps", "cpu"],
+        supported_devices=["cpu", "cuda", "mps"],
         dtype="float64",
     )
 
