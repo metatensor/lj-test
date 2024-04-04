@@ -63,6 +63,7 @@ def lennard_jones_model(
             ),
         },
         supported_devices=["cuda", "mps", "cpu"],
+        dtype="float64",
     )
 
     metadata = ModelMetadata(
