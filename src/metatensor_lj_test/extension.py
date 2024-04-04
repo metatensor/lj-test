@@ -56,7 +56,11 @@ class LennardJonesExtension(torch.nn.Module):
         per_atoms = outputs["energy"].per_atom
 
         all_energies = []
+        # Initialize device so we can access it outside of the for loop
+        device = torch.device("cpu")
         for system_i, system in enumerate(systems):
+            device = system.device
+
             neighbors = system.get_neighbors_list(self._nl_options)
             pairs = neighbors.samples.view(["first_atom", "second_atom"]).values
             distances = neighbors.values.reshape(-1, 3)
@@ -89,20 +93,26 @@ class LennardJonesExtension(torch.nn.Module):
                     for a in range(len(system)):
                         samples_list.append([s, a])
 
-                samples = Labels(["system", "atom"], torch.tensor(samples_list))
+                samples = Labels(
+                    ["system", "atom"], torch.tensor(samples_list, device=device)
+                )
             else:
                 samples = selected_atoms
         else:
-            samples = Labels(["system"], torch.arange(len(systems)).reshape(-1, 1))
+            samples = Labels(
+                ["system"], torch.arange(len(systems), device=device).reshape(-1, 1)
+            )
 
         block = TensorBlock(
             values=torch.vstack(all_energies).reshape(-1, 1),
             samples=samples,
             components=torch.jit.annotate(List[Labels], []),
-            properties=Labels(["energy"], torch.tensor([[0]])),
+            properties=Labels(["energy"], torch.tensor([[0]], device=device)),
         )
         return {
-            "energy": TensorMap(Labels("_", torch.tensor([[0]])), [block]),
+            "energy": TensorMap(
+                Labels("_", torch.tensor([[0]], device=device)), [block]
+            ),
         }
 
     def requested_neighbors_lists(self) -> List[NeighborsListOptions]:

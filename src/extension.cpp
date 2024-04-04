@@ -13,7 +13,7 @@ torch::Tensor lennard_jones(
     auto sigma_r_12 = sigma_r_6 * sigma_r_6;
     auto e = 4.0 * epsilon * (sigma_r_12 - sigma_r_6) - shift;
 
-    auto energies = torch::zeros(n_atoms, torch::TensorOptions().dtype(distances.scalar_type()));
+    auto energies = torch::zeros(n_atoms, torch::TensorOptions().dtype(distances.scalar_type()).device(distances.device()));
     auto all_i = pairs.index({torch::indexing::Slice(), 0});
     auto all_j = pairs.index({torch::indexing::Slice(), 1});
 
