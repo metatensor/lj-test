@@ -58,7 +58,7 @@ class LennardJonesExtension(torch.nn.Module):
         all_energies = []
         for system_i, system in enumerate(systems):
             neighbors = system.get_neighbors_list(self._nl_options)
-            pairs = neighbors.samples.view(["first_atom", "second_atom"])
+            pairs = neighbors.samples.view(["first_atom", "second_atom"]).values
             distances = neighbors.values.reshape(-1, 3)
 
             # call the custom operator
