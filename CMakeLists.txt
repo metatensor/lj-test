@@ -20,5 +20,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # Installation configuration
 install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION "lib"
-    RUNTIME DESTINATION "lib"
+    RUNTIME DESTINATION "bin"
 )
