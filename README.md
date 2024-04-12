@@ -23,7 +23,8 @@ pip install --extra-index-url=https://download.pytorch.org/whl/cpu git+https://g
 import metatensor_lj_test
 
 # `with_extension` controls wether the model uses custom
-# TorchScript operators or a pure PyTorch implementation
+# TorchScript operators defined in a C++ extension library
+# or a pure PyTorch implementation
 model = metatensor_lj_test.lennard_jones_model(
     atomic_type=12,
     cutoff=3.4,
@@ -34,5 +35,5 @@ model = metatensor_lj_test.lennard_jones_model(
     with_extension=False,
 )
 
-model.export("lennard-jones.pt", collect_extension="extensions/")
+model.export("lennard-jones.pt", collect_extensions="extensions/")
 ```
