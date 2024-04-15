@@ -67,7 +67,7 @@ def lennard_jones_model(
     )
 
     metadata = ModelMetadata(
-        name="Test Lennard-Jones" + " (with extension)" if with_extension else "",
+        name="Test Lennard-Jones" + (" (with extension)" if with_extension else ""),
         description="""Minimal shifted Lennard-Jones potential, to be used when testing
 the integration of metatensor atomistic models with various simulation engines.""",
         authors=["Guillaume Fraux <guillaume.fraux@epfl.ch>"],
