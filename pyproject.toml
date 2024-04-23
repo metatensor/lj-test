@@ -1,7 +1,7 @@
 [project]
 name = "metatensor-lj-test"
 description = "Package for testing metatensor model integration"
-version = "0.0.0"
+dynamic = ["version"]
 dependencies = [
     "torch >=1.12",
     "metatensor-torch >0.4.0-pre,<0.5.0"
@@ -11,6 +11,10 @@ dependencies = [
 build-backend = "setuptools.build_meta"
 requires = [
     "setuptools",
+    "setuptools-scm",
     "wheel",
     "torch >=1.12"
 ]
+
+
+[tool.setuptools_scm]
