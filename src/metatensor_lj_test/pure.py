@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 import torch
 from metatensor.torch import Labels, TensorBlock, TensorMap
-from metatensor.torch.atomistic import ModelOutput, NeighborsListOptions, System
+from metatensor.torch.atomistic import ModelOutput, NeighborListOptions, System
 
 
 class LennardJonesPurePyTorch(torch.nn.Module):
@@ -13,7 +13,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
 
     def __init__(self, cutoff, epsilon, sigma):
         super().__init__()
-        self._nl_options = NeighborsListOptions(cutoff=cutoff, full_list=False)
+        self._nl_options = NeighborListOptions(cutoff=cutoff, full_list=False)
 
         self._epsilon = epsilon
         self._sigma = sigma
@@ -40,7 +40,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             device = system.device
             dtype = system.positions.dtype
 
-            neighbors = system.get_neighbors_list(self._nl_options)
+            neighbors = system.get_neighbor_list(self._nl_options)
             all_i = neighbors.samples.column("first_atom").to(torch.long)
             all_j = neighbors.samples.column("second_atom").to(torch.long)
 
@@ -97,5 +97,5 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             ),
         }
 
-    def requested_neighbors_lists(self) -> List[NeighborsListOptions]:
+    def requested_neighbor_lists(self) -> List[NeighborListOptions]:
         return [self._nl_options]
