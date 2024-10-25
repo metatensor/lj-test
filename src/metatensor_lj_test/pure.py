@@ -13,7 +13,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
 
     def __init__(self, cutoff, epsilon, sigma):
         super().__init__()
-        self._nl_options = NeighborListOptions(cutoff=cutoff, full_list=False)
+        self._nl_options = NeighborListOptions(cutoff=cutoff, full_list=False, strict=True)
 
         self._epsilon = epsilon
         self._sigma = sigma
