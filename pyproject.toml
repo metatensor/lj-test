@@ -12,7 +12,6 @@ build-backend = "setuptools.build_meta"
 requires = [
     "setuptools",
     "setuptools-scm",
-    "wheel",
     "torch >=1.12"
 ]
 
