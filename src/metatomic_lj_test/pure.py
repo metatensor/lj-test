@@ -2,18 +2,20 @@ from typing import Dict, List, Optional
 
 import torch
 from metatensor.torch import Labels, TensorBlock, TensorMap
-from metatensor.torch.atomistic import ModelOutput, NeighborListOptions, System
+from metatomic.torch import ModelOutput, NeighborListOptions, System
 
 
 class LennardJonesPurePyTorch(torch.nn.Module):
     """
-    Pure PyTorch implementation of Lennard-Jones potential, following metatensor
-    atomistic models interface.
+    Pure PyTorch implementation of Lennard-Jones potential, following metatomic models
+    interface.
     """
 
     def __init__(self, cutoff, epsilon, sigma):
         super().__init__()
-        self._nl_options = NeighborListOptions(cutoff=cutoff, full_list=False, strict=True)
+        self._nl_options = NeighborListOptions(
+            cutoff=cutoff, full_list=False, strict=True
+        )
 
         self._epsilon = epsilon
         self._sigma = sigma
