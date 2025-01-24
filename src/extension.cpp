@@ -23,7 +23,7 @@ torch::Tensor lennard_jones(
     return energies;
 }
 
-TORCH_LIBRARY(metatensor_lj_test, m) {
+TORCH_LIBRARY(metatomic_lj_test, m) {
     m.def(
         "lennard_jones(Tensor pairs, Tensor distances, int n_atoms, float epsilon, float sigma, float shift) -> Tensor",
         lennard_jones
