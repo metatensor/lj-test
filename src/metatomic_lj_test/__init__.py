@@ -1,4 +1,4 @@
-from metatensor.torch.atomistic import (
+from metatomic.torch import (
     MetatensorAtomisticModel,
     ModelCapabilities,
     ModelMetadata,
@@ -16,8 +16,8 @@ def lennard_jones_model(
     with_extension,
 ):
     """
-    Get a :py:class:`MetatensorAtomisticModel` corresponding to a shifted Lennard-Jones
-    potential for the given ``atomic_type``.
+    Get a metatomic model corresponding to a shifted Lennard-Jones potential for the
+    given ``atomic_type``.
 
     The energy for this model is a sum over all pairs within the cutoff of:
 
@@ -93,14 +93,14 @@ def lennard_jones_model(
     metadata = ModelMetadata(
         name="Test Lennard-Jones" + (" (with extension)" if with_extension else ""),
         description="""Minimal shifted Lennard-Jones potential, to be used when testing
-the integration of metatensor atomistic models with various simulation engines.""",
+the integration of metatomic models with various simulation engines.""",
         authors=["Guillaume Fraux <guillaume.fraux@epfl.ch>"],
         references={
             "model": [
-                "https://github.com/luthaf/metatensor-lj-test",
+                "https://github.com/metatensor/lj-test",
             ],
             "implementation": [
-                "https://github.com/lab-cosmo/metatensor",
+                "https://github.com/metatensor/metatomic",
             ],
         },
     )
