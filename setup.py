@@ -16,7 +16,7 @@ class cmake_ext(build_ext):
         source_dir = ROOT
         build_dir = os.path.join(ROOT, "build", "cmake-build")
         install_dir = os.path.join(
-            os.path.realpath(self.build_lib), "metatensor_lj_test"
+            os.path.realpath(self.build_lib), "metatomic_lj_test"
         )
 
         os.makedirs(build_dir, exist_ok=True)
@@ -81,14 +81,14 @@ class cmake_ext(build_ext):
 if __name__ == "__main__":
     setup(
         ext_modules=[
-            Extension(name="metatensor_lj_test", sources=[]),
+            Extension(name="metatomic_lj_test", sources=[]),
         ],
         cmdclass={
             "build_ext": cmake_ext,
         },
         package_data={
-            "metatensor_lj_test": [
-                "metatensor_lj_test/lib/*",
+            "metatomic_lj_test": [
+                "metatomic_lj_test/lib/*",
             ]
         },
     )
