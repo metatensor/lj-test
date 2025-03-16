@@ -61,6 +61,12 @@ def lennard_jones_model(
                 per_atom=True,
                 explicit_gradients=[],
             ),
+            "energy_ensemble": ModelOutput(
+                quantity="energy",
+                unit=energy_unit,
+                per_atom=True,
+                explicit_gradients=[],
+            ),
         },
         supported_devices=["cpu", "cuda", "mps"],
         dtype="float64",
