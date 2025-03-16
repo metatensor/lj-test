@@ -50,8 +50,11 @@ class LennardJonesExtension(torch.nn.Module):
         outputs: Dict[str, ModelOutput],
         selected_atoms: Optional[Labels],
     ) -> Dict[str, TensorMap]:
-        if "energy" not in outputs:
+        if "energy" not in outputs and "energy_ensemble" not in outputs:
             return {}
+        
+        if "energy_ensemble" in outputs and "energy" not in outputs:
+            raise ValueError("energy_ensemble cannot be calculated without energy")
 
         per_atoms = outputs["energy"].per_atom
 
@@ -109,11 +112,27 @@ class LennardJonesExtension(torch.nn.Module):
             components=torch.jit.annotate(List[Labels], []),
             properties=Labels(["energy"], torch.tensor([[0]], device=device)),
         )
-        return {
+        return_dict = {
             "energy": TensorMap(
                 Labels("_", torch.tensor([[0]], device=device)), [block]
             ),
         }
+
+        if "energy_ensemble" in outputs:
+            n_ensemble_members = 16
+            return_dict["energy_ensemble"] = TensorMap(
+                return_dict["energy"].keys,
+                [
+                    TensorBlock(
+                        values=block.values.reshape(1, -1).repeat(1, n_ensemble_members),
+                        samples=block.samples,
+                        components=block.components,
+                        properties=Labels(["energy"], torch.arange(n_ensemble_members, device=device, dtype=torch.int).reshape(-1, 1)),
+                    )
+                ]
+            )
+
+        return return_dict
 
     def requested_neighbor_lists(self) -> List[NeighborListOptions]:
         return [self._nl_options]
