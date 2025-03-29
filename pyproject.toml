@@ -4,7 +4,7 @@ description = "Package for testing metatensor model integration"
 dynamic = ["version"]
 dependencies = [
     "torch >=1.12",
-    "metatensor-torch >=0.6.0,<0.7.0"
+    "metatensor-torch >=0.6.0,<0.8.0"
 ]
 
 [build-system]
