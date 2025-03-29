@@ -67,6 +67,12 @@ def lennard_jones_model(
                 per_atom=True,
                 explicit_gradients=[],
             ), # This is a dummy ensemble for testing, returning the same energy many times
+            "energy_uncertainty": ModelOutput(
+                quantity="energy",
+                unit=energy_unit,
+                per_atom=False,
+                explicit_gradients=[],
+            ),
         },
         supported_devices=["cpu", "cuda", "mps"],
         dtype="float64",
