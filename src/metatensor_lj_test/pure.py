@@ -123,16 +123,16 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             # scaling would be with sqrt(n_atoms) or n_atoms); this is useful in tests
             # so we can artificially increase the uncertainty with the number of atoms
             n_atoms = torch.tensor([len(system) for system in systems], device=device)
-            n_atoms = n_atoms.reshape(-1, 1).to(dtype=dtype)
-            energy_uncertainty = 0.1 * n_atoms * n_atoms
+            n_atoms = n_atoms.reshape(-1, 1).to(dtype=systems[0].positions.dtype)
+            energy_uncertainty = 0.001 * n_atoms * n_atoms
             return_dict["energy_uncertainty"] = TensorMap(
                 return_dict["energy"].keys,
                 [
                     TensorBlock(
                         values=energy_uncertainty,
-                        samples=block.samples,
+                        samples=Labels(["system"], torch.arange(len(systems), device=device).reshape(-1, 1)),
                         components=block.components,
-                        properties=Labels(["energy"], torch.arange(1, device=device, dtype=torch.int).reshape(-1, 1)),
+                        properties=block.properties,
                     )
                 ]
             )
