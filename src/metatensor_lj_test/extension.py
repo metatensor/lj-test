@@ -137,7 +137,7 @@ class LennardJonesExtension(torch.nn.Module):
             )
 
         if "energy_uncertainty" in outputs:
-            # returns an uncertainty of 0.1 * n_atoms^2 (note that the natural
+            # returns an uncertainty of 0.001 * n_atoms^2 (note that the natural
             # scaling would be with sqrt(n_atoms) or n_atoms); this is useful in tests
             # so we can artificially increase the uncertainty with the number of atoms
             n_atoms = torch.tensor([len(system) for system in systems], device=device)
