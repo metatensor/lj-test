@@ -50,11 +50,14 @@ class LennardJonesExtension(torch.nn.Module):
         outputs: Dict[str, ModelOutput],
         selected_atoms: Optional[Labels],
     ) -> Dict[str, TensorMap]:
-        if "energy" not in outputs and "energy_ensemble" not in outputs:
+        if "energy" not in outputs and "energy_ensemble" and "energy_uncertainty" not in outputs:
             return {}
         
         if "energy_ensemble" in outputs and "energy" not in outputs:
             raise ValueError("energy_ensemble cannot be calculated without energy")
+        
+        if "energy_uncertainty" in outputs and "energy" not in outputs:
+            raise ValueError("energy_uncertainty cannot be calculated without energy")
 
         per_atoms = outputs["energy"].per_atom
 
@@ -119,6 +122,7 @@ class LennardJonesExtension(torch.nn.Module):
         }
 
         if "energy_ensemble" in outputs:
+            # returns the same energy for all ensemble members
             n_ensemble_members = 16
             return_dict["energy_ensemble"] = TensorMap(
                 return_dict["energy"].keys,
@@ -128,6 +132,25 @@ class LennardJonesExtension(torch.nn.Module):
                         samples=block.samples,
                         components=block.components,
                         properties=Labels(["energy"], torch.arange(n_ensemble_members, device=device, dtype=torch.int).reshape(-1, 1)),
+                    )
+                ]
+            )
+
+        if "energy_uncertainty" in outputs:
+            # returns an uncertainty of 0.001 * n_atoms^2 (note that the natural
+            # scaling would be with sqrt(n_atoms) or n_atoms); this is useful in tests
+            # so we can artificially increase the uncertainty with the number of atoms
+            n_atoms = torch.tensor([len(system) for system in systems], device=device)
+            n_atoms = n_atoms.reshape(-1, 1).to(dtype=systems[0].positions.dtype)
+            energy_uncertainty = 0.001 * n_atoms * n_atoms
+            return_dict["energy_uncertainty"] = TensorMap(
+                return_dict["energy"].keys,
+                [
+                    TensorBlock(
+                        values=energy_uncertainty,
+                        samples=Labels(["system"], torch.arange(len(systems), device=device).reshape(-1, 1)),
+                        components=block.components,
+                        properties=block.properties,
                     )
                 ]
             )
