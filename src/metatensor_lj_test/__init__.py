@@ -81,7 +81,7 @@ def lennard_jones_model(
             ),
             "non_conservative_stress": ModelOutput(
                 quantity="stress",
-                unit="eV/Angstrom",
+                unit="eV/Angstrom^3",
                 per_atom=False,
                 explicit_gradients=[],
             ),
