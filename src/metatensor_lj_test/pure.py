@@ -33,6 +33,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             and "energy_uncertainty" not in outputs
             and "energy_uncertainty" not in outputs
             and "non_conservative_forces" not in outputs
+            and "non_conservative_stress" not in outputs
         ):
             return {}
         
@@ -46,6 +47,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
 
         all_energies = []
         all_non_conservative_forces = []
+        all_non_conservative_stress = []
 
         # Initialize device so we can access it outside of the for loop
         device = torch.device("cpu")
@@ -98,6 +100,11 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                     forces = forces[current_atoms]
 
                 all_non_conservative_forces.append(forces)
+
+            if "non_conservative_stress" in outputs:
+                # we fill the non-conservative stress with random numbers
+                stress = torch.randn((3, 3), device=device, dtype=dtype)
+                all_non_conservative_stress.append(stress)
 
         if selected_atoms is None:
             samples_list: List[List[int]] = []
@@ -179,6 +186,33 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                         ],
                         properties=Labels(
                             ["non_conservative_forces"],
+                            torch.tensor([[0]], device=device),
+                        ),
+                    )
+                ],
+            )
+        
+        if "non_conservative_stress" in outputs:
+            return_dict["non_conservative_stress"] = TensorMap(
+                keys=Labels("_", torch.tensor([[0]], device=device)),
+                blocks=[
+                    TensorBlock(
+                        values=torch.cat(all_non_conservative_stress).reshape(-1, 3, 3, 1),
+                        samples=Labels(
+                            ["system"], torch.arange(len(systems), device=device).reshape(-1, 1)
+                        ),
+                        components=[
+                            Labels(
+                                ["xyz_1"],
+                                torch.arange(3, device=device).reshape(-1, 1),
+                            ),
+                            Labels(
+                                ["xyz_2"],
+                                torch.arange(3, device=device).reshape(-1, 1),
+                            )
+                        ],
+                        properties=Labels(
+                            ["non_conservative_stress"],
                             torch.tensor([[0]], device=device),
                         ),
                     )

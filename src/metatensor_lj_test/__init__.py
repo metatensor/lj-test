@@ -74,9 +74,15 @@ def lennard_jones_model(
                 explicit_gradients=[],
             ),
             "non_conservative_forces": ModelOutput(
-                quantity="energy",
-                unit=energy_unit,
+                quantity="forces",
+                unit="eV/Angstrom",
                 per_atom=True,
+                explicit_gradients=[],
+            ),
+            "non_conservative_stress": ModelOutput(
+                quantity="stress",
+                unit="eV/Angstrom",
+                per_atom=False,
                 explicit_gradients=[],
             ),
         },
