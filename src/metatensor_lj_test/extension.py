@@ -58,6 +58,9 @@ class LennardJonesExtension(torch.nn.Module):
         
         if "energy_uncertainty" in outputs and "energy" not in outputs:
             raise ValueError("energy_uncertainty cannot be calculated without energy")
+        
+        if "non_conservative_forces" in outputs:
+            raise ValueError("the model with extensions does not support non-conservative forces")
 
         per_atoms = outputs["energy"].per_atom
 

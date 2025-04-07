@@ -73,6 +73,12 @@ def lennard_jones_model(
                 per_atom=False,
                 explicit_gradients=[],
             ),
+            "non_conservative_forces": ModelOutput(
+                quantity="energy",
+                unit=energy_unit,
+                per_atom=True,
+                explicit_gradients=[],
+            ),
         },
         supported_devices=["cpu", "cuda", "mps"],
         dtype="float64",

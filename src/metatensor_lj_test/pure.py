@@ -27,7 +27,13 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         outputs: Dict[str, ModelOutput],
         selected_atoms: Optional[Labels],
     ) -> Dict[str, TensorMap]:
-        if "energy" not in outputs and "energy_ensemble" and "energy_uncertainty" not in outputs:
+        if (
+            "energy" not in outputs
+            and "energy_ensemble" not in outputs
+            and "energy_uncertainty" not in outputs
+            and "energy_uncertainty" not in outputs
+            and "non_conservative_forces" not in outputs
+        ):
             return {}
         
         if "energy_ensemble" in outputs and "energy" not in outputs:
@@ -39,6 +45,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         per_atoms = outputs["energy"].per_atom
 
         all_energies = []
+        all_non_conservative_forces = []
 
         # Initialize device so we can access it outside of the for loop
         device = torch.device("cpu")
@@ -74,18 +81,38 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             else:
                 all_energies.append(energy.sum(0, keepdim=True))
 
-        if per_atoms:
-            if selected_atoms is None:
-                samples_list: List[List[int]] = []
-                for s, system in enumerate(systems):
-                    for a in range(len(system)):
-                        samples_list.append([s, a])
+            if "non_conservative_forces" in outputs:
+                # we fill the non-conservative forces as the negative gradient of the potential
+                # with respect to the positions, plus a random term
+                forces = torch.zeros(len(system), 3, device=device, dtype=dtype)
+                forces_per_pair = 12.0 * self._epsilon * (sigma_r_6 - 2.0 * sigma_r_12) / torch.linalg.vector_norm(distances, dim=1) ** 2
+                forces_per_pair = forces_per_pair.unsqueeze(1) * distances
+                forces = forces.index_add(0, all_i, forces_per_pair)
+                forces = forces.index_add(0, all_j, -forces_per_pair)
+                forces = forces + 0.1 * torch.randn_like(forces) * torch.mean(torch.abs(forces))
 
-                samples = Labels(
-                    ["system", "atom"], torch.tensor(samples_list, device=device)
-                )
-            else:
-                samples = selected_atoms
+                if selected_atoms is not None:
+                    current_system_mask = selected_atoms.column("system") == system_i
+                    current_atoms = selected_atoms.column("atom")
+                    current_atoms = current_atoms[current_system_mask].to(torch.long)
+                    forces = forces[current_atoms]
+
+                all_non_conservative_forces.append(forces)
+
+        if selected_atoms is None:
+            samples_list: List[List[int]] = []
+            for s, system in enumerate(systems):
+                for a in range(len(system)):
+                    samples_list.append([s, a])
+
+            per_atom_samples = Labels(
+                ["system", "atom"], torch.tensor(samples_list, device=device)
+            )
+        else:
+            per_atom_samples = selected_atoms
+
+        if per_atoms:
+            samples = per_atom_samples
         else:
             samples = Labels(
                 ["system"], torch.arange(len(systems), device=device).reshape(-1, 1)
@@ -135,6 +162,27 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                         properties=block.properties,
                     )
                 ]
+            )
+
+        if "non_conservative_forces" in outputs:
+            return_dict["non_conservative_forces"] = TensorMap(
+                keys=Labels("_", torch.tensor([[0]], device=device)),
+                blocks=[
+                    TensorBlock(
+                        values=torch.cat(all_non_conservative_forces).reshape(-1, 3, 1),
+                        samples=per_atom_samples,
+                        components=[
+                            Labels(
+                                ["xyz"],
+                                torch.arange(3, device=device).reshape(-1, 1),
+                            )
+                        ],
+                        properties=Labels(
+                            ["non_conservative_forces"],
+                            torch.tensor([[0]], device=device),
+                        ),
+                    )
+                ],
             )
 
         return return_dict
