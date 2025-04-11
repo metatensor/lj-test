@@ -1,10 +1,10 @@
 [project]
-name = "metatensor-lj-test"
-description = "Package for testing metatensor model integration"
+name = "metatomic-lj-test"
+description = "Package for testing metatomic model integration"
 dynamic = ["version"]
 dependencies = [
     "torch >=1.12",
-    "metatensor-torch >=0.6.0,<0.8.0"
+    "metatomic-torch >=0.1.0.a1,<0.0.0"
 ]
 
 [build-system]

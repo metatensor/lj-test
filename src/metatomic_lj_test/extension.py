@@ -4,36 +4,38 @@ from typing import Dict, List, Optional
 
 import torch
 from metatensor.torch import Labels, TensorBlock, TensorMap
-from metatensor.torch.atomistic import ModelOutput, NeighborListOptions, System
+from metatomic.torch import ModelOutput, NeighborListOptions, System
 
 _HERE = os.path.dirname(__file__)
 
 
 def _lib_path():
     if sys.platform.startswith("darwin"):
-        path = os.path.join(_HERE, "lib", "libmetatensor_lj_test.dylib")
+        path = os.path.join(_HERE, "lib", "libmetatomic_lj_test.dylib")
     elif sys.platform.startswith("linux"):
-        path = os.path.join(_HERE, "lib", "libmetatensor_lj_test.so")
+        path = os.path.join(_HERE, "lib", "libmetatomic_lj_test.so")
     elif sys.platform.startswith("win"):
-        path = os.path.join(_HERE, "bin", "metatensor_lj_test.dll")
+        path = os.path.join(_HERE, "bin", "metatomic_lj_test.dll")
     else:
         raise ImportError("Unknown platform. Please edit this file")
 
     if os.path.isfile(path):
         return path
 
-    raise ImportError("Could not find metatensor_torch shared library at " + path)
+    raise ImportError("Could not find metatomic_lj shared library at " + path)
 
 
 class LennardJonesExtension(torch.nn.Module):
     """
     Implementation of Lennard-Jones potential using a custom TorchScript extension,
-    following the metatensor atomistic models interface.
+    following the metatomic models interface.
     """
 
     def __init__(self, cutoff, epsilon, sigma):
         super().__init__()
-        self._nl_options = NeighborListOptions(cutoff=cutoff, full_list=False, strict=True)
+        self._nl_options = NeighborListOptions(
+            cutoff=cutoff, full_list=False, strict=True
+        )
 
         self._epsilon = epsilon
         self._sigma = sigma
@@ -85,7 +87,7 @@ class LennardJonesExtension(torch.nn.Module):
             distances = neighbors.values.reshape(-1, 3)
 
             # call the custom operator
-            energy = torch.ops.metatensor_lj_test.lennard_jones(
+            energy = torch.ops.metatomic_lj_test.lennard_jones(
                 pairs=pairs,
                 distances=distances,
                 n_atoms=len(system),
