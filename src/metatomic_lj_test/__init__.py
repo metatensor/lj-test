@@ -1,5 +1,5 @@
 from metatomic.torch import (
-    MetatensorAtomisticModel,
+    AtomisticModel,
     ModelCapabilities,
     ModelMetadata,
     ModelOutput,
@@ -66,7 +66,7 @@ def lennard_jones_model(
                 unit=energy_unit,
                 per_atom=True,
                 explicit_gradients=[],
-            ), # This is a dummy ensemble for testing, returning the same energy many times
+            ),  # This is a dummy ensemble for testing, returning the same energy many times
             "energy_uncertainty": ModelOutput(
                 quantity="energy",
                 unit=energy_unit,
@@ -106,4 +106,4 @@ the integration of metatomic models with various simulation engines.""",
     )
 
     model.eval()
-    return MetatensorAtomisticModel(model, metadata, capabilities)
+    return AtomisticModel(model, metadata, capabilities)
