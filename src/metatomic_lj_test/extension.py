@@ -61,18 +61,22 @@ class LennardJonesExtension(torch.nn.Module):
             and "non_conservative_stress" not in outputs
         ):
             return {}
-        
+
         if "energy_ensemble" in outputs and "energy" not in outputs:
             raise ValueError("energy_ensemble cannot be calculated without energy")
-        
+
         if "energy_uncertainty" in outputs and "energy" not in outputs:
             raise ValueError("energy_uncertainty cannot be calculated without energy")
-        
+
         if "non_conservative_forces" in outputs:
-            raise ValueError("the model with extensions does not support non-conservative forces")
-        
+            raise ValueError(
+                "the model with extensions does not support non-conservative forces"
+            )
+
         if "non_conservative_stress" in outputs:
-            raise ValueError("the model with extensions does not support non-conservative stress")
+            raise ValueError(
+                "the model with extensions does not support non-conservative stress"
+            )
 
         per_atoms = outputs["energy"].per_atom
 
@@ -107,6 +111,7 @@ class LennardJonesExtension(torch.nn.Module):
             else:
                 all_energies.append(energy.sum(0, keepdim=True))
 
+        energy_values = torch.vstack(all_energies).reshape(-1, 1)
         if per_atoms:
             if selected_atoms is None:
                 samples_list: List[List[int]] = []
@@ -114,9 +119,12 @@ class LennardJonesExtension(torch.nn.Module):
                     for a in range(len(system)):
                         samples_list.append([s, a])
 
-                samples = Labels(
-                    ["system", "atom"], torch.tensor(samples_list, device=device)
-                )
+                samples_values = torch.tensor(samples_list, device=device)
+                # randomly shuffle the samples to make sure the different engines handle
+                # out of order samples
+                indexes = torch.randperm(samples_values.shape[0])
+                energy_values = energy_values[indexes]
+                samples = Labels(["system", "atom"], samples_values[indexes])
             else:
                 samples = selected_atoms
         else:
@@ -125,7 +133,7 @@ class LennardJonesExtension(torch.nn.Module):
             )
 
         block = TensorBlock(
-            values=torch.vstack(all_energies).reshape(-1, 1),
+            values=energy_values,
             samples=samples,
             components=torch.jit.annotate(List[Labels], []),
             properties=Labels(["energy"], torch.tensor([[0]], device=device)),
@@ -143,18 +151,25 @@ class LennardJonesExtension(torch.nn.Module):
                 return_dict["energy"].keys,
                 [
                     TensorBlock(
-                        values=block.values.reshape(1, -1).repeat(1, n_ensemble_members),
+                        values=energy_values.reshape(1, -1).repeat(
+                            1, n_ensemble_members
+                        ),
                         samples=block.samples,
                         components=block.components,
-                        properties=Labels(["energy"], torch.arange(n_ensemble_members, device=device, dtype=torch.int).reshape(-1, 1)),
+                        properties=Labels(
+                            ["energy"],
+                            torch.arange(n_ensemble_members, device=device).reshape(
+                                -1, 1
+                            ),
+                        ),
                     )
-                ]
+                ],
             )
 
         if "energy_uncertainty" in outputs:
-            # returns an uncertainty of 0.001 * n_atoms^2 (note that the natural
-            # scaling would be with sqrt(n_atoms) or n_atoms); this is useful in tests
-            # so we can artificially increase the uncertainty with the number of atoms
+            # returns an uncertainty of `0.001 * n_atoms^2` (note that the natural
+            # scaling would be `sqrt(n_atoms)` or `n_atoms`); this is useful in tests so
+            # we can artificially increase the uncertainty with the number of atoms
             n_atoms = torch.tensor([len(system) for system in systems], device=device)
             n_atoms = n_atoms.reshape(-1, 1).to(dtype=systems[0].positions.dtype)
             energy_uncertainty = 0.001 * n_atoms * n_atoms
@@ -163,11 +178,14 @@ class LennardJonesExtension(torch.nn.Module):
                 [
                     TensorBlock(
                         values=energy_uncertainty,
-                        samples=Labels(["system"], torch.arange(len(systems), device=device).reshape(-1, 1)),
+                        samples=Labels(
+                            ["system"],
+                            torch.arange(len(systems), device=device).reshape(-1, 1),
+                        ),
                         components=block.components,
                         properties=block.properties,
                     )
-                ]
+                ],
             )
 
         return return_dict
