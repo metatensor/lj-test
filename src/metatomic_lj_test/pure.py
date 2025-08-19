@@ -165,11 +165,12 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         if "energy_ensemble" in outputs:
             # returns the same energy for all ensemble members
             n_ensemble_members = 16
+
             return_dict["energy_ensemble"] = TensorMap(
                 return_dict["energy"].keys,
                 [
                     TensorBlock(
-                        values=energy_values.reshape(1, -1).repeat(
+                        values=energy_values.reshape(-1, 1).repeat(
                             1, n_ensemble_members
                         ),
                         samples=block.samples,
