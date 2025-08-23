@@ -70,7 +70,7 @@ def lennard_jones_model(
             "energy_uncertainty": ModelOutput(
                 quantity="energy",
                 unit=energy_unit,
-                per_atom=False,
+                per_atom=True,
                 explicit_gradients=[],
             ),
             "non_conservative_forces": ModelOutput(
