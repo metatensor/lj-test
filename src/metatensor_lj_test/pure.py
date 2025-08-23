@@ -31,7 +31,6 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             "energy" not in outputs
             and "energy_ensemble" not in outputs
             and "energy_uncertainty" not in outputs
-            and "energy_uncertainty" not in outputs
             and "non_conservative_forces" not in outputs
             and "non_conservative_stress" not in outputs
         ):
@@ -159,14 +158,25 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             n_atoms = torch.tensor([len(system) for system in systems], device=device)
             n_atoms = n_atoms.reshape(-1, 1).to(dtype=systems[0].positions.dtype)
             energy_uncertainty = 0.001 * n_atoms * n_atoms
+            if outputs["energy_uncertainty"].per_atom:
+                energy_uncertainty = torch.stack([energy_uncertainty[i] for i, system in enumerate(systems) for _ in range(len(system))])
             return_dict["energy_uncertainty"] = TensorMap(
                 return_dict["energy"].keys,
                 [
-                    TensorBlock(
-                        values=energy_uncertainty,
-                        samples=Labels(["system"], torch.arange(len(systems), device=device).reshape(-1, 1)),
-                        components=block.components,
-                        properties=block.properties,
+                    (
+                        TensorBlock(
+                            values=energy_uncertainty,
+                            samples=per_atom_samples,
+                            components=block.components,
+                            properties=block.properties,
+                        )
+                        if outputs["energy_uncertainty"].per_atom else
+                        TensorBlock(
+                            values=energy_uncertainty,
+                            samples=Labels(["system"], torch.arange(len(systems), device=device).reshape(-1, 1)),
+                            components=block.components,
+                            properties=block.properties,
+                        )
                     )
                 ]
             )
