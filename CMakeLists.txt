@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(metatensor_lj_test CXX)
+project(metatomic_lj_test CXX)
 
 # FindCUDNN.cmake distributed with PyTorch is a bit broken, so we have a
 # fixed version in `cmake/FindCUDNN.cmake`

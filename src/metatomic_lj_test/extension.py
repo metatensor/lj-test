@@ -4,36 +4,38 @@ from typing import Dict, List, Optional
 
 import torch
 from metatensor.torch import Labels, TensorBlock, TensorMap
-from metatensor.torch.atomistic import ModelOutput, NeighborListOptions, System
+from metatomic.torch import ModelOutput, NeighborListOptions, System
 
 _HERE = os.path.dirname(__file__)
 
 
 def _lib_path():
     if sys.platform.startswith("darwin"):
-        path = os.path.join(_HERE, "lib", "libmetatensor_lj_test.dylib")
+        path = os.path.join(_HERE, "lib", "libmetatomic_lj_test.dylib")
     elif sys.platform.startswith("linux"):
-        path = os.path.join(_HERE, "lib", "libmetatensor_lj_test.so")
+        path = os.path.join(_HERE, "lib", "libmetatomic_lj_test.so")
     elif sys.platform.startswith("win"):
-        path = os.path.join(_HERE, "bin", "metatensor_lj_test.dll")
+        path = os.path.join(_HERE, "bin", "metatomic_lj_test.dll")
     else:
         raise ImportError("Unknown platform. Please edit this file")
 
     if os.path.isfile(path):
         return path
 
-    raise ImportError("Could not find metatensor_torch shared library at " + path)
+    raise ImportError("Could not find metatomic_lj shared library at " + path)
 
 
 class LennardJonesExtension(torch.nn.Module):
     """
     Implementation of Lennard-Jones potential using a custom TorchScript extension,
-    following the metatensor atomistic models interface.
+    following the metatomic models interface.
     """
 
     def __init__(self, cutoff, epsilon, sigma):
         super().__init__()
-        self._nl_options = NeighborListOptions(cutoff=cutoff, full_list=False, strict=True)
+        self._nl_options = NeighborListOptions(
+            cutoff=cutoff, full_list=False, strict=True
+        )
 
         self._epsilon = epsilon
         self._sigma = sigma
@@ -58,7 +60,7 @@ class LennardJonesExtension(torch.nn.Module):
             and "non_conservative_stress" not in outputs
         ):
             return {}
-        
+
         if "energy_ensemble" in outputs and "energy" not in outputs:
             raise ValueError("energy_ensemble cannot be calculated without energy")
         
@@ -66,10 +68,14 @@ class LennardJonesExtension(torch.nn.Module):
             raise ValueError("the model with extensions does not support energy uncertainty")
 
         if "non_conservative_forces" in outputs:
-            raise ValueError("the model with extensions does not support non-conservative forces")
-        
+            raise ValueError(
+                "the model with extensions does not support non-conservative forces"
+            )
+
         if "non_conservative_stress" in outputs:
-            raise ValueError("the model with extensions does not support non-conservative stress")
+            raise ValueError(
+                "the model with extensions does not support non-conservative stress"
+            )
 
         per_atoms = outputs["energy"].per_atom
 
@@ -84,7 +90,7 @@ class LennardJonesExtension(torch.nn.Module):
             distances = neighbors.values.reshape(-1, 3)
 
             # call the custom operator
-            energy = torch.ops.metatensor_lj_test.lennard_jones(
+            energy = torch.ops.metatomic_lj_test.lennard_jones(
                 pairs=pairs,
                 distances=distances,
                 n_atoms=len(system),
@@ -104,6 +110,7 @@ class LennardJonesExtension(torch.nn.Module):
             else:
                 all_energies.append(energy.sum(0, keepdim=True))
 
+        energy_values = torch.vstack(all_energies).reshape(-1, 1)
         if per_atoms:
             if selected_atoms is None:
                 samples_list: List[List[int]] = []
@@ -111,9 +118,12 @@ class LennardJonesExtension(torch.nn.Module):
                     for a in range(len(system)):
                         samples_list.append([s, a])
 
-                samples = Labels(
-                    ["system", "atom"], torch.tensor(samples_list, device=device)
-                )
+                samples_values = torch.tensor(samples_list, device=device)
+                # randomly shuffle the samples to make sure the different engines handle
+                # out of order samples
+                indexes = torch.randperm(samples_values.shape[0])
+                energy_values = energy_values[indexes]
+                samples = Labels(["system", "atom"], samples_values[indexes])
             else:
                 samples = selected_atoms
         else:
@@ -122,7 +132,7 @@ class LennardJonesExtension(torch.nn.Module):
             )
 
         block = TensorBlock(
-            values=torch.vstack(all_energies).reshape(-1, 1),
+            values=energy_values,
             samples=samples,
             components=torch.jit.annotate(List[Labels], []),
             properties=Labels(["energy"], torch.tensor([[0]], device=device)),
@@ -140,12 +150,19 @@ class LennardJonesExtension(torch.nn.Module):
                 return_dict["energy"].keys,
                 [
                     TensorBlock(
-                        values=block.values.reshape(1, -1).repeat(1, n_ensemble_members),
+                        values=energy_values.reshape(1, -1).repeat(
+                            1, n_ensemble_members
+                        ),
                         samples=block.samples,
                         components=block.components,
-                        properties=Labels(["energy"], torch.arange(n_ensemble_members, device=device, dtype=torch.int).reshape(-1, 1)),
+                        properties=Labels(
+                            ["energy"],
+                            torch.arange(n_ensemble_members, device=device).reshape(
+                                -1, 1
+                            ),
+                        ),
                     )
-                ]
+                ],
             )
 
         return return_dict

@@ -1,5 +1,5 @@
-from metatensor.torch.atomistic import (
-    MetatensorAtomisticModel,
+from metatomic.torch import (
+    AtomisticModel,
     ModelCapabilities,
     ModelMetadata,
     ModelOutput,
@@ -16,8 +16,8 @@ def lennard_jones_model(
     with_extension,
 ):
     """
-    Get a :py:class:`MetatensorAtomisticModel` corresponding to a shifted Lennard-Jones
-    potential for the given ``atomic_type``.
+    Get a metatomic model corresponding to a shifted Lennard-Jones potential for the
+    given ``atomic_type``.
 
     The energy for this model is a sum over all pairs within the cutoff of:
 
@@ -66,7 +66,7 @@ def lennard_jones_model(
                 unit=energy_unit,
                 per_atom=True,
                 explicit_gradients=[],
-            ), # This is a dummy ensemble for testing, returning the same energy many times
+            ),  # This is a dummy ensemble for testing, returning the same energy many times
             "energy_uncertainty": ModelOutput(
                 quantity="energy",
                 unit=energy_unit,
@@ -93,17 +93,17 @@ def lennard_jones_model(
     metadata = ModelMetadata(
         name="Test Lennard-Jones" + (" (with extension)" if with_extension else ""),
         description="""Minimal shifted Lennard-Jones potential, to be used when testing
-the integration of metatensor atomistic models with various simulation engines.""",
+the integration of metatomic models with various simulation engines.""",
         authors=["Guillaume Fraux <guillaume.fraux@epfl.ch>"],
         references={
             "model": [
-                "https://github.com/luthaf/metatensor-lj-test",
+                "https://github.com/metatensor/lj-test",
             ],
             "implementation": [
-                "https://github.com/lab-cosmo/metatensor",
+                "https://github.com/metatensor/metatomic",
             ],
         },
     )
 
     model.eval()
-    return MetatensorAtomisticModel(model, metadata, capabilities)
+    return AtomisticModel(model, metadata, capabilities)
