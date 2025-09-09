@@ -41,6 +41,14 @@ def lennard_jones_model(
     :param with_extension: should the model use the custom TorchScript extension?
     """
 
+    outputs = {
+        "energy": ModelOutput(
+            quantity="energy",
+            unit=energy_unit,
+            per_atom=True,
+        ),
+    }
+
     if with_extension:
         from .extension import LennardJonesExtension
 
@@ -50,42 +58,36 @@ def lennard_jones_model(
 
         model = LennardJonesPurePyTorch(cutoff=cutoff, epsilon=epsilon, sigma=sigma)
 
+        outputs.update(
+            {
+                "energy_ensemble": ModelOutput(
+                    quantity="energy",
+                    unit=energy_unit,
+                    per_atom=True,
+                ),
+                "energy_uncertainty": ModelOutput(
+                    quantity="energy",
+                    unit=energy_unit,
+                    per_atom=True,
+                ),
+                "non_conservative_forces": ModelOutput(
+                    quantity="force",
+                    unit="eV/Angstrom",
+                    per_atom=True,
+                ),
+                "non_conservative_stress": ModelOutput(
+                    quantity="pressure",
+                    unit="eV/Angstrom^3",
+                    per_atom=False,
+                ),
+            }
+        )
+
     capabilities = ModelCapabilities(
         length_unit=length_unit,
         interaction_range=cutoff,
         atomic_types=[atomic_type],
-        outputs={
-            "energy": ModelOutput(
-                quantity="energy",
-                unit=energy_unit,
-                per_atom=True,
-                explicit_gradients=[],
-            ),
-            "energy_ensemble": ModelOutput(
-                quantity="energy",
-                unit=energy_unit,
-                per_atom=True,
-                explicit_gradients=[],
-            ),  # This is a dummy ensemble for testing, returning the same energy many times
-            "energy_uncertainty": ModelOutput(
-                quantity="energy",
-                unit=energy_unit,
-                per_atom=True,
-                explicit_gradients=[],
-            ),
-            "non_conservative_forces": ModelOutput(
-                quantity="force",
-                unit="eV/Angstrom",
-                per_atom=True,
-                explicit_gradients=[],
-            ),
-            "non_conservative_stress": ModelOutput(
-                quantity="pressure",
-                unit="eV/Angstrom^3",
-                per_atom=False,
-                explicit_gradients=[],
-            ),
-        },
+        outputs=outputs,
         supported_devices=["cpu", "cuda", "mps"],
         dtype="float64",
     )
