@@ -44,9 +44,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         if "energy_uncertainty" in outputs and "energy" not in outputs:
             raise ValueError("energy_uncertainty cannot be calculated without energy")
 
-        per_atoms = outputs["energy"].per_atom
-
         all_energies = []
+        all_energies_per_atom = []
         all_non_conservative_forces = []
         all_non_conservative_stress = []
 
@@ -79,10 +78,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 current_atoms = current_atoms[current_system_mask].to(torch.long)
                 energy = energy[current_atoms]
 
-            if per_atoms:
-                all_energies.append(energy)
-            else:
-                all_energies.append(energy.sum(0, keepdim=True))
+            all_energies_per_atom.append(energy)
+            all_energies.append(energy.sum(0, keepdim=True))
 
             if "non_conservative_forces" in outputs:
                 # we fill the non-conservative forces as the negative gradient of the potential
@@ -115,6 +112,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 all_non_conservative_stress.append(stress)
 
         energy_values = torch.vstack(all_energies).reshape(-1, 1)
+        energies_per_atom_values = torch.vstack(all_energies_per_atom).reshape(-1, 1)
 
         if "non_conservative_forces" in outputs:
             nc_forces_values = torch.cat(all_non_conservative_forces).reshape(-1, 3, 1)
@@ -130,8 +128,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             # randomly shuffle the samples to make sure the different engines handle
             # out of order samples
             indexes = torch.randperm(len(samples_list))
-            if per_atoms:
-                energy_values = energy_values[indexes]
+            if outputs["energy"].per_atom:
+                energies_per_atom_values = energies_per_atom_values[indexes]
 
             if "non_conservative_forces" in outputs:
                 nc_forces_values = nc_forces_values[indexes]
@@ -142,47 +140,54 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         else:
             per_atom_samples = selected_atoms
 
-        if per_atoms:
-            samples = per_atom_samples
+        per_system_samples = Labels(
+            ["system"], torch.arange(len(systems), device=device).reshape(-1, 1)
+        )
+        single_key = Labels("_", torch.tensor([[0]], device=device))
+
+        if outputs["energy"].per_atom:
+            energy_block = TensorBlock(
+                values=energies_per_atom_values,
+                samples=per_atom_samples,
+                components=torch.jit.annotate(List[Labels], []),
+                properties=Labels(["energy"], torch.tensor([[0]], device=device)),
+            )
         else:
-            samples = Labels(
-                ["system"], torch.arange(len(systems), device=device).reshape(-1, 1)
+            energy_block = TensorBlock(
+                values=energy_values,
+                samples=per_system_samples,
+                components=torch.jit.annotate(List[Labels], []),
+                properties=Labels(["energy"], torch.tensor([[0]], device=device)),
             )
 
-        block = TensorBlock(
-            values=energy_values,
-            samples=samples,
-            components=torch.jit.annotate(List[Labels], []),
-            properties=Labels(["energy"], torch.tensor([[0]], device=device)),
-        )
-        return_dict = {
-            "energy": TensorMap(
-                Labels("_", torch.tensor([[0]], device=device)), [block]
-            ),
+        results = {
+            "energy": TensorMap(single_key, [energy_block]),
         }
 
         if "energy_ensemble" in outputs:
             # returns the same energy for all ensemble members
             n_ensemble_members = 16
-
-            return_dict["energy_ensemble"] = TensorMap(
-                return_dict["energy"].keys,
-                [
-                    TensorBlock(
-                        values=energy_values.reshape(-1, 1).repeat(
-                            1, n_ensemble_members
-                        ),
-                        samples=block.samples,
-                        components=block.components,
-                        properties=Labels(
-                            ["energy"],
-                            torch.arange(n_ensemble_members, device=device).reshape(
-                                -1, 1
-                            ),
-                        ),
-                    )
-                ],
+            ensembled_properties = Labels(
+                ["energy"],
+                torch.arange(n_ensemble_members, device=device).reshape(-1, 1),
             )
+
+            if outputs["energy_ensemble"].per_atom:
+                ensemble_block = TensorBlock(
+                    values=energies_per_atom_values.repeat(1, n_ensemble_members),
+                    samples=per_atom_samples,
+                    components=[],
+                    properties=ensembled_properties,
+                )
+            else:
+                ensemble_block = TensorBlock(
+                    values=energy_values.repeat(1, n_ensemble_members),
+                    samples=per_system_samples,
+                    components=[],
+                    properties=ensembled_properties,
+                )
+
+            results["energy_ensemble"] = TensorMap(single_key, [ensemble_block])
 
         if "energy_uncertainty" in outputs:
             # returns an uncertainty of `0.001 * n_atoms^2` (note that the natural
@@ -190,32 +195,35 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             # we can artificially increase the uncertainty with the number of atoms
             n_atoms = torch.tensor([len(system) for system in systems], device=device)
             n_atoms = n_atoms.reshape(-1, 1).to(dtype=systems[0].positions.dtype)
-            energy_uncertainty = 0.001 * n_atoms * n_atoms
+
+            energy_uncertainty = 0.001 * n_atoms**2
+
             if outputs["energy_uncertainty"].per_atom:
-                energy_uncertainty = torch.stack([energy_uncertainty[i] for i, system in enumerate(systems) for _ in range(len(system))])
-            return_dict["energy_uncertainty"] = TensorMap(
-                return_dict["energy"].keys,
-                [
-                    (
-                        TensorBlock(
-                            values=energy_uncertainty,
-                            samples=per_atom_samples,
-                            components=block.components,
-                            properties=block.properties,
-                        )
-                        if outputs["energy_uncertainty"].per_atom else
-                        TensorBlock(
-                            values=energy_uncertainty,
-                            samples=Labels(["system"], torch.arange(len(systems), device=device).reshape(-1, 1)),
-                            components=block.components,
-                            properties=block.properties,
-                        )
-                    )
-                ],
-            )
+                energy_uncertainty = torch.vstack(
+                    [
+                        energy_uncertainty[i].repeat(len(system), 1)
+                        for i, system in enumerate(systems)
+                    ]
+                )
+
+                uncertainty_block = TensorBlock(
+                    values=energy_uncertainty,
+                    samples=per_atom_samples,
+                    components=[],
+                    properties=energy_block.properties,
+                )
+            else:
+                uncertainty_block = TensorBlock(
+                    values=energy_uncertainty,
+                    samples=per_system_samples,
+                    components=[],
+                    properties=energy_block.properties,
+                )
+
+            results["energy_uncertainty"] = TensorMap(single_key, [uncertainty_block])
 
         if "non_conservative_forces" in outputs:
-            return_dict["non_conservative_forces"] = TensorMap(
+            results["non_conservative_forces"] = TensorMap(
                 keys=Labels("_", torch.tensor([[0]], device=device)),
                 blocks=[
                     TensorBlock(
@@ -236,7 +244,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             )
 
         if "non_conservative_stress" in outputs:
-            return_dict["non_conservative_stress"] = TensorMap(
+            results["non_conservative_stress"] = TensorMap(
                 keys=Labels("_", torch.tensor([[0]], device=device)),
                 blocks=[
                     TensorBlock(
@@ -265,7 +273,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 ],
             )
 
-        return return_dict
+        return results
 
     def requested_neighbor_lists(self) -> List[NeighborListOptions]:
         return [self._nl_options]
