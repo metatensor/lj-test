@@ -35,5 +35,5 @@ model = metatomic_lj_test.lennard_jones_model(
     with_extension=False,
 )
 
-model.export("lennard-jones.pt", collect_extensions="extensions/")
+model.save("lennard-jones.pt", collect_extensions="extensions/")
 ```
