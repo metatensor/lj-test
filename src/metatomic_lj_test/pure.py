@@ -128,7 +128,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             # randomly shuffle the samples to make sure the different engines handle
             # out of order samples
             indexes = torch.randperm(len(samples_list))
-            if outputs["energy"].per_atom:
+            if "energy" in outputs and outputs["energy"].per_atom:
                 energies_per_atom_values = energies_per_atom_values[indexes]
 
             if "non_conservative_forces" in outputs:
@@ -145,7 +145,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         )
         single_key = Labels("_", torch.tensor([[0]], device=device))
 
-        if outputs["energy"].per_atom:
+        if "energy" in outputs and outputs["energy"].per_atom:
             energy_block = TensorBlock(
                 values=energies_per_atom_values,
                 samples=per_atom_samples,
@@ -160,9 +160,9 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 properties=Labels(["energy"], torch.tensor([[0]], device=device)),
             )
 
-        results = {
-            "energy": TensorMap(single_key, [energy_block]),
-        }
+        results: Dict[str, TensorMap] = {}
+        if "energy" in outputs:
+            results["energy"] = TensorMap(single_key, [energy_block])
 
         if "energy_ensemble" in outputs:
             # returns the same energy for all ensemble members
