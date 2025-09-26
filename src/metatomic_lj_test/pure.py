@@ -41,16 +41,14 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         if "energy_ensemble" in outputs and "energy" not in outputs:
             raise ValueError("energy_ensemble cannot be calculated without energy")
 
-        if "energy_uncertainty" in outputs and "energy" not in outputs:
-            raise ValueError("energy_uncertainty cannot be calculated without energy")
-
         all_energies = []
         all_energies_per_atom = []
         all_non_conservative_forces = []
         all_non_conservative_stress = []
 
-        # Initialize device so we can access it outside of the for loop
+        # Initialize device/dtype so we can access it outside of the for loop
         device = torch.device("cpu")
+        dtype = torch.float32
         for system_i, system in enumerate(systems):
             device = system.device
             dtype = system.positions.dtype
@@ -194,15 +192,17 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             # scaling would be `sqrt(n_atoms)` or `n_atoms`); this is useful in tests so
             # we can artificially increase the uncertainty with the number of atoms
             n_atoms = torch.tensor([len(system) for system in systems], device=device)
-            n_atoms = n_atoms.reshape(-1, 1).to(dtype=systems[0].positions.dtype)
-
             energy_uncertainty = 0.001 * n_atoms**2
+            energy_uncertainty = energy_uncertainty.to(dtype=dtype).to(device=device)
 
             if outputs["energy_uncertainty"].per_atom:
+                selected_systems = per_atom_samples.column("system")
                 energy_uncertainty = torch.vstack(
                     [
-                        energy_uncertainty[i].repeat(len(system), 1)
-                        for i, system in enumerate(systems)
+                        energy_uncertainty[s].repeat(
+                            len(torch.where(selected_systems == s)[0]), 1
+                        )
+                        for s in torch.unique(selected_systems)
                     ]
                 )
 
