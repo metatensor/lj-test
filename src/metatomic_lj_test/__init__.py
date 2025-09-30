@@ -32,6 +32,9 @@ def lennard_jones_model(
     constant that ensure that the energy given by the above formula goes to 0 at the
     cutoff.
 
+    The model also provides a ``doubled`` **variant** where the :math:`\epsilon`
+    parameter is scaled by a factor of 2.
+
     :param atomic_type: atomic type to which sigma/epsilon correspond
     :param cutoff: spherical cutoff of the model
     :param epsilon: epsilon parameter of Lennard-Jones
@@ -43,6 +46,11 @@ def lennard_jones_model(
 
     outputs = {
         "energy": ModelOutput(
+            quantity="energy",
+            unit=energy_unit,
+            per_atom=True,
+        ),
+        "energy/doubled": ModelOutput(
             quantity="energy",
             unit=energy_unit,
             per_atom=True,
@@ -70,7 +78,17 @@ def lennard_jones_model(
                     unit=energy_unit,
                     per_atom=True,
                 ),
+                "energy_uncertainty/doubled": ModelOutput(
+                    quantity="energy",
+                    unit=energy_unit,
+                    per_atom=True,
+                ),
                 "non_conservative_forces": ModelOutput(
+                    quantity="force",
+                    unit="eV/Angstrom",
+                    per_atom=True,
+                ),
+                "non_conservative_forces/doubled": ModelOutput(
                     quantity="force",
                     unit="eV/Angstrom",
                     per_atom=True,
@@ -79,6 +97,11 @@ def lennard_jones_model(
                     quantity="pressure",
                     unit="eV/Angstrom^3",
                     per_atom=False,
+                ),
+                "non_conservative_stress/doubled": ModelOutput(
+                    quantity="pressure",
+                    unit="eV/Angstrom^3",
+                    per_atom=True,
                 ),
             }
         )

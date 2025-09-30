@@ -3,7 +3,7 @@ import sys
 from typing import Dict, List, Optional
 
 import torch
-from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatensor.torch import Labels, TensorBlock, TensorMap, multiply
 from metatomic.torch import ModelOutput, NeighborListOptions, System
 
 _HERE = os.path.dirname(__file__)
@@ -116,11 +116,16 @@ class LennardJonesExtension(torch.nn.Module):
             properties=Labels(["energy"], torch.tensor([[0]], device=device)),
         )
 
-        return {
+        results = {
             "energy": TensorMap(
                 Labels("_", torch.tensor([[0]], device=device)), [block]
             ),
         }
+
+        if "energy/doubled" in outputs:
+            results["energy/doubled"] = multiply(results["energy"], 2.0)
+
+        return results
 
     def requested_neighbor_lists(self) -> List[NeighborListOptions]:
         return [self._nl_options]
