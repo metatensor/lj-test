@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 
 import torch
-from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatensor.torch import Labels, TensorBlock, TensorMap, multiply
 from metatomic.torch import ModelOutput, NeighborListOptions, System
 
 
@@ -31,10 +31,14 @@ class LennardJonesPurePyTorch(torch.nn.Module):
     ) -> Dict[str, TensorMap]:
         if (
             "energy" not in outputs
+            and "energy/doubled" not in outputs
             and "energy_ensemble" not in outputs
             and "energy_uncertainty" not in outputs
+            and "energy_uncertainty/doubled" not in outputs
             and "non_conservative_forces" not in outputs
+            and "non_conservative_forces/doubled" not in outputs
             and "non_conservative_stress" not in outputs
+            and "non_conservative_stress/doubled" not in outputs
         ):
             return {}
 
@@ -79,7 +83,10 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             all_energies_per_atom.append(energy)
             all_energies.append(energy.sum(0, keepdim=True))
 
-            if "non_conservative_forces" in outputs:
+            if (
+                "non_conservative_forces" in outputs
+                or "non_conservative_forces/doubled" in outputs
+            ):
                 # we fill the non-conservative forces as the negative gradient of the potential
                 # with respect to the positions, plus a random term
                 forces = torch.zeros(len(system), 3, device=device, dtype=dtype)
@@ -104,7 +111,10 @@ class LennardJonesPurePyTorch(torch.nn.Module):
 
                 all_non_conservative_forces.append(forces)
 
-            if "non_conservative_stress" in outputs:
+            if (
+                "non_conservative_stress" in outputs
+                or "non_conservative_stress/doubled" in outputs
+            ):
                 # we fill the non-conservative stress with random numbers
                 stress = torch.randn((3, 3), device=device, dtype=dtype)
                 all_non_conservative_stress.append(stress)
@@ -112,7 +122,10 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         energy_values = torch.vstack(all_energies).reshape(-1, 1)
         energies_per_atom_values = torch.vstack(all_energies_per_atom).reshape(-1, 1)
 
-        if "non_conservative_forces" in outputs:
+        if (
+            "non_conservative_forces" in outputs
+            or "non_conservative_forces/doubled" in outputs
+        ):
             nc_forces_values = torch.cat(all_non_conservative_forces).reshape(-1, 3, 1)
         else:
             nc_forces_values = torch.empty((0, 0))
@@ -126,10 +139,15 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             # randomly shuffle the samples to make sure the different engines handle
             # out of order samples
             indexes = torch.randperm(len(samples_list))
-            if "energy" in outputs and outputs["energy"].per_atom:
+            if ("energy" in outputs and outputs["energy"].per_atom) or (
+                "energy/doubled" in outputs and outputs["energy/doubled"].per_atom
+            ):
                 energies_per_atom_values = energies_per_atom_values[indexes]
 
-            if "non_conservative_forces" in outputs:
+            if (
+                "non_conservative_forces" in outputs
+                or "non_conservative_forces/doubled" in outputs
+            ):
                 nc_forces_values = nc_forces_values[indexes]
 
             per_atom_samples = Labels(
@@ -143,7 +161,9 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         )
         single_key = Labels("_", torch.tensor([[0]], device=device))
 
-        if "energy" in outputs and outputs["energy"].per_atom:
+        if ("energy" in outputs and outputs["energy"].per_atom) or (
+            "energy/doubled" in outputs and outputs["energy/doubled"].per_atom
+        ):
             energy_block = TensorBlock(
                 values=energies_per_atom_values,
                 samples=per_atom_samples,
@@ -159,8 +179,12 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             )
 
         results: Dict[str, TensorMap] = {}
-        if "energy" in outputs:
-            results["energy"] = TensorMap(single_key, [energy_block])
+        if "energy" in outputs or "energy/doubled" in outputs:
+            result = TensorMap(single_key, [energy_block])
+            if "energy" in outputs:
+                results["energy"] = result
+            if "energy/doubled" in outputs:
+                results["energy/doubled"] = multiply(result, 2.0)
 
         if "energy_ensemble" in outputs:
             # returns the same energy for all ensemble members
@@ -187,7 +211,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
 
             results["energy_ensemble"] = TensorMap(single_key, [ensemble_block])
 
-        if "energy_uncertainty" in outputs:
+        if "energy_uncertainty" in outputs or "energy_uncertainty/doubled" in outputs:
             # returns an uncertainty of `0.001 * n_atoms^2` (note that the natural
             # scaling would be `sqrt(n_atoms)` or `n_atoms`); this is useful in tests so
             # we can artificially increase the uncertainty with the number of atoms
@@ -220,10 +244,17 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                     properties=energy_block.properties,
                 )
 
-            results["energy_uncertainty"] = TensorMap(single_key, [uncertainty_block])
+            result = TensorMap(single_key, [uncertainty_block])
+            if "energy_uncertainty" in outputs:
+                results["energy_uncertainty"] = result
+            if "energy_uncertainty/doubled" in outputs:
+                results["energy_uncertainty/doubled"] = multiply(result, 2.0)
 
-        if "non_conservative_forces" in outputs:
-            results["non_conservative_forces"] = TensorMap(
+        if (
+            "non_conservative_forces" in outputs
+            or "non_conservative_forces/doubled" in outputs
+        ):
+            result = TensorMap(
                 keys=Labels("_", torch.tensor([[0]], device=device)),
                 blocks=[
                     TensorBlock(
@@ -242,9 +273,16 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                     )
                 ],
             )
+            if "non_conservative_forces" in outputs:
+                results["non_conservative_forces"] = result
+            if "non_conservative_forces/doubled" in outputs:
+                results["non_conservative_forces/doubled"] = multiply(result, 2.0)
 
-        if "non_conservative_stress" in outputs:
-            results["non_conservative_stress"] = TensorMap(
+        if (
+            "non_conservative_stress" in outputs
+            or "non_conservative_stress/doubled" in outputs
+        ):
+            result = TensorMap(
                 keys=Labels("_", torch.tensor([[0]], device=device)),
                 blocks=[
                     TensorBlock(
@@ -272,6 +310,10 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                     )
                 ],
             )
+            if "non_conservative_stress" in outputs:
+                results["non_conservative_stress"] = result
+            if "non_conservative_stress/doubled" in outputs:
+                results["non_conservative_stress/doubled"] = multiply(result, 2.0)
 
         return results
 
