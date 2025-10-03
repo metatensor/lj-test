@@ -238,7 +238,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 )
             else:
                 uncertainty_block = TensorBlock(
-                    values=energy_uncertainty,
+                    values=energy_uncertainty.reshape(-1,1),
                     samples=per_system_samples,
                     components=[],
                     properties=energy_block.properties,
