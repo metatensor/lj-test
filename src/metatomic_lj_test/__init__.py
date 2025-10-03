@@ -73,6 +73,11 @@ def lennard_jones_model(
                     unit=energy_unit,
                     per_atom=True,
                 ),
+                "energy_ensemble/doubled": ModelOutput(
+                    quantity="energy",
+                    unit=energy_unit,
+                    per_atom=True,
+                ),
                 "energy_uncertainty": ModelOutput(
                     quantity="energy",
                     unit=energy_unit,
