@@ -32,7 +32,7 @@ def lennard_jones_model(
     constant that ensure that the energy given by the above formula goes to 0 at the
     cutoff.
 
-    The model also provides a ``doubled`` **variant** where the :math:`\epsilon`
+    The model also provides a ``doubled`` **variant** where the :math:`\\epsilon`
     parameter is scaled by a factor of 2.
 
     :param atomic_type: atomic type to which sigma/epsilon correspond
