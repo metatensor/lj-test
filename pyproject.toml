@@ -3,7 +3,7 @@ name = "metatomic-lj-test"
 description = "Package for testing metatomic model integration"
 dynamic = ["version"]
 dependencies = [
-    "torch >=1.12",
+    "torch >=2.1",
     "metatomic-torch >=0.1.0,<0.2.0"
 ]
 
@@ -13,7 +13,7 @@ requires = [
     "cmake",
     "setuptools",
     "setuptools-scm",
-    "torch >=1.12"
+    "torch >=2.1"
 ]
 
 [tool.setuptools_scm]
