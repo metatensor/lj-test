@@ -4,7 +4,7 @@ description = "Package for testing metatomic model integration"
 dynamic = ["version"]
 dependencies = [
     "torch >=2.1",
-    "metatomic-torch >=0.1.0,<0.2.0"
+    "metatomic-torch >=0.1.6"
 ]
 
 [build-system]

@@ -46,11 +46,13 @@ def lennard_jones_model(
 
     outputs = {
         "energy": ModelOutput(
+            description="LJ energy",
             quantity="energy",
             unit=energy_unit,
             per_atom=True,
         ),
         "energy/doubled": ModelOutput(
+            description="LJ energy, multiplied by 2",
             quantity="energy",
             unit=energy_unit,
             per_atom=True,
@@ -69,41 +71,49 @@ def lennard_jones_model(
         outputs.update(
             {
                 "energy_ensemble": ModelOutput(
+                    description="ensemble of energy",
                     quantity="energy",
                     unit=energy_unit,
                     per_atom=True,
                 ),
                 "energy_ensemble/doubled": ModelOutput(
+                    description="ensemble of energy, multiplied by 2",
                     quantity="energy",
                     unit=energy_unit,
                     per_atom=True,
                 ),
                 "energy_uncertainty": ModelOutput(
+                    description="Pseudo uncertainty for tests, scales with the system size",
                     quantity="energy",
                     unit=energy_unit,
                     per_atom=True,
                 ),
                 "energy_uncertainty/doubled": ModelOutput(
+                    description="Pseudo uncertainty for tests, multiplied by 2",
                     quantity="energy",
                     unit=energy_unit,
                     per_atom=True,
                 ),
                 "non_conservative_forces": ModelOutput(
+                    description="Direct force prediction for LJ",
                     quantity="force",
                     unit="eV/Angstrom",
                     per_atom=True,
                 ),
                 "non_conservative_forces/doubled": ModelOutput(
+                    description="Direct force prediction for LJ, multiplied by 2",
                     quantity="force",
                     unit="eV/Angstrom",
                     per_atom=True,
                 ),
                 "non_conservative_stress": ModelOutput(
+                    description="Random stress prediction",
                     quantity="pressure",
                     unit="eV/Angstrom^3",
                     per_atom=False,
                 ),
                 "non_conservative_stress/doubled": ModelOutput(
+                    description="Random stress prediction, multiplied by 2",
                     quantity="pressure",
                     unit="eV/Angstrom^3",
                     per_atom=True,
