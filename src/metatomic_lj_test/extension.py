@@ -55,7 +55,7 @@ class LennardJonesExtension(torch.nn.Module):
         if "energy" not in outputs:
             return {}
 
-        per_atoms = outputs["energy"].per_atom
+        energy_per_atoms = outputs["energy"].sample_kind == "atom"
 
         all_energies = []
         # Initialize device so we can access it outside of the for loop
@@ -83,13 +83,13 @@ class LennardJonesExtension(torch.nn.Module):
                 current_atoms = current_atoms[current_system_mask].to(torch.long)
                 energy = energy[current_atoms]
 
-            if per_atoms:
+            if energy_per_atoms:
                 all_energies.append(energy)
             else:
                 all_energies.append(energy.sum(0, keepdim=True))
 
         energy_values = torch.vstack(all_energies).reshape(-1, 1)
-        if per_atoms:
+        if energy_per_atoms:
             if selected_atoms is None:
                 samples_list: List[List[int]] = []
                 for s, system in enumerate(systems):
