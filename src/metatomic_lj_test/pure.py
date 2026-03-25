@@ -131,6 +131,13 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         else:
             nc_forces_values = torch.empty((0, 0))
 
+        do_energy_per_atom = (
+            "energy" in outputs and outputs["energy"].sample_kind == "atom"
+        ) or (
+            "energy/doubled" in outputs
+            and outputs["energy/doubled"].sample_kind == "atom"
+        )
+
         if selected_atoms is None:
             samples_list: List[List[int]] = []
             for s, system in enumerate(systems):
@@ -140,9 +147,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             # randomly shuffle the samples to make sure the different engines handle
             # out of order samples
             indexes = torch.randperm(len(samples_list))
-            if ("energy" in outputs and outputs["energy"].per_atom) or (
-                "energy/doubled" in outputs and outputs["energy/doubled"].per_atom
-            ):
+            if do_energy_per_atom:
                 energies_per_atom_values = energies_per_atom_values[indexes]
 
             if (
@@ -162,9 +167,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         )
         single_key = Labels("_", torch.tensor([[0]], device=device))
 
-        if ("energy" in outputs and outputs["energy"].per_atom) or (
-            "energy/doubled" in outputs and outputs["energy/doubled"].per_atom
-        ):
+        if do_energy_per_atom:
             energy_block = TensorBlock(
                 values=energies_per_atom_values,
                 samples=per_atom_samples,
@@ -198,8 +201,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             for variant in ["energy_ensemble", "energy_ensemble/doubled"]:
                 if variant not in outputs:
                     continue
-                
-                if outputs[variant].per_atom:
+
+                if outputs[variant].sample_kind == "atom":
                     ensemble_block = TensorBlock(
                         values=energies_per_atom_values.repeat(1, n_ensemble_members),
                         samples=per_atom_samples,
@@ -214,9 +217,9 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                         properties=ensembled_properties,
                     )
 
-                result= TensorMap(single_key, [ensemble_block])
+                result = TensorMap(single_key, [ensemble_block])
                 if variant == "energy_ensemble/doubled":
-                    result = multiply(result,2.0)
+                    result = multiply(result, 2.0)
                 results[variant] = result
 
         if "energy_uncertainty" in outputs or "energy_uncertainty/doubled" in outputs:
@@ -231,7 +234,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 if variant not in outputs:
                     continue
 
-                if outputs[variant].per_atom:
+                if outputs[variant].sample_kind == "atom":
                     selected_systems = per_atom_samples.column("system")
                     energy_uncertainty = torch.vstack(
                         [
@@ -250,7 +253,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                     )
                 else:
                     uncertainty_block = TensorBlock(
-                        values=energy_uncertainty.reshape(-1,1),
+                        values=energy_uncertainty.reshape(-1, 1),
                         samples=per_system_samples,
                         components=[],
                         properties=energy_block.properties,
