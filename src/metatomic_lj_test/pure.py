@@ -152,7 +152,12 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 nc_forces_values = nc_forces_values[indexes]
 
             per_atom_samples = Labels(
-                ["system", "atom"], torch.tensor(samples_list, device=device)[indexes]
+                ["system", "atom"],
+                (
+                    torch.tensor(samples_list, device=device)[indexes]
+                    if len(samples_list) > 0
+                    else torch.empty((0, 2), device=device)
+                ),
             )
         else:
             per_atom_samples = selected_atoms
