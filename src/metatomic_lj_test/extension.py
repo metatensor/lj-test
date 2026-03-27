@@ -101,7 +101,14 @@ class LennardJonesExtension(torch.nn.Module):
                 # out of order samples
                 indexes = torch.randperm(samples_values.shape[0])
                 energy_values = energy_values[indexes]
-                samples = Labels(["system", "atom"], samples_values[indexes])
+                samples = Labels(
+                    ["system", "atom"],
+                    (
+                        torch.tensor(samples_list, device=device)[indexes]
+                        if len(samples_list) > 0
+                        else torch.empty((0, 2), device=device)
+                    ),
+                )
             else:
                 samples = selected_atoms
         else:
