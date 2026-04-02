@@ -198,7 +198,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             for variant in ["energy_ensemble", "energy_ensemble/doubled"]:
                 if variant not in outputs:
                     continue
-                
+
                 if outputs[variant].per_atom:
                     ensemble_block = TensorBlock(
                         values=energies_per_atom_values.repeat(1, n_ensemble_members),
@@ -214,9 +214,9 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                         properties=ensembled_properties,
                     )
 
-                result= TensorMap(single_key, [ensemble_block])
+                result = TensorMap(single_key, [ensemble_block])
                 if variant == "energy_ensemble/doubled":
-                    result = multiply(result,2.0)
+                    result = multiply(result, 2.0)
                 results[variant] = result
 
         if "energy_uncertainty" in outputs or "energy_uncertainty/doubled" in outputs:
@@ -250,7 +250,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                     )
                 else:
                     uncertainty_block = TensorBlock(
-                        values=energy_uncertainty.reshape(-1,1),
+                        values=energy_uncertainty.reshape(-1, 1),
                         samples=per_system_samples,
                         components=[],
                         properties=energy_block.properties,
@@ -278,7 +278,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                             )
                         ],
                         properties=Labels(
-                            ["non_conservative_forces"],
+                            ["non_conservative_force"],
                             torch.tensor([[0]], device=device),
                         ),
                     )
