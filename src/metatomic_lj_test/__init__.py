@@ -88,12 +88,12 @@ def lennard_jones_model(
                     unit=energy_unit,
                     sample_kind="atom",
                 ),
-                "non_conservative_forces": ModelOutput(
+                "non_conservative_force": ModelOutput(
                     description="Direct force prediction for LJ",
                     unit="eV/Angstrom",
                     sample_kind="atom",
                 ),
-                "non_conservative_forces/doubled": ModelOutput(
+                "non_conservative_force/doubled": ModelOutput(
                     description="Direct force prediction for LJ, multiplied by 2",
                     unit="eV/Angstrom",
                     sample_kind="atom",
