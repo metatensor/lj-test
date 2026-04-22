@@ -36,8 +36,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             and "energy_ensemble/doubled" not in outputs
             and "energy_uncertainty" not in outputs
             and "energy_uncertainty/doubled" not in outputs
-            and "non_conservative_forces" not in outputs
-            and "non_conservative_forces/doubled" not in outputs
+            and "non_conservative_force" not in outputs
+            and "non_conservative_force/doubled" not in outputs
             and "non_conservative_stress" not in outputs
             and "non_conservative_stress/doubled" not in outputs
         ):
@@ -85,8 +85,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             all_energies.append(energy.sum(0, keepdim=True))
 
             if (
-                "non_conservative_forces" in outputs
-                or "non_conservative_forces/doubled" in outputs
+                "non_conservative_force" in outputs
+                or "non_conservative_force/doubled" in outputs
             ):
                 # we fill the non-conservative forces as the negative gradient of the potential
                 # with respect to the positions, plus a random term
@@ -124,8 +124,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         energies_per_atom_values = torch.vstack(all_energies_per_atom).reshape(-1, 1)
 
         if (
-            "non_conservative_forces" in outputs
-            or "non_conservative_forces/doubled" in outputs
+            "non_conservative_force" in outputs
+            or "non_conservative_force/doubled" in outputs
         ):
             nc_forces_values = torch.cat(all_non_conservative_forces).reshape(-1, 3, 1)
         else:
@@ -151,8 +151,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 energies_per_atom_values = energies_per_atom_values[indexes]
 
             if (
-                "non_conservative_forces" in outputs
-                or "non_conservative_forces/doubled" in outputs
+                "non_conservative_force" in outputs
+                or "non_conservative_force/doubled" in outputs
             ):
                 nc_forces_values = nc_forces_values[indexes]
 
@@ -270,8 +270,8 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                 results[variant] = result
 
         if (
-            "non_conservative_forces" in outputs
-            or "non_conservative_forces/doubled" in outputs
+            "non_conservative_force" in outputs
+            or "non_conservative_force/doubled" in outputs
         ):
             result = TensorMap(
                 keys=Labels("_", torch.tensor([[0]], device=device)),
@@ -292,10 +292,10 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                     )
                 ],
             )
-            if "non_conservative_forces" in outputs:
-                results["non_conservative_forces"] = result
-            if "non_conservative_forces/doubled" in outputs:
-                results["non_conservative_forces/doubled"] = multiply(result, 2.0)
+            if "non_conservative_force" in outputs:
+                results["non_conservative_force"] = result
+            if "non_conservative_force/doubled" in outputs:
+                results["non_conservative_force/doubled"] = multiply(result, 2.0)
 
         if (
             "non_conservative_stress" in outputs
