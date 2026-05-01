@@ -64,7 +64,13 @@ class LennardJonesExtension(torch.nn.Module):
             device = system.device
 
             neighbors = system.get_neighbor_list(self._nl_options)
-            pairs = neighbors.samples.view(["first_atom", "second_atom"]).values
+            pairs = torch.stack(
+                [
+                    neighbors.samples.column("first_atom"),
+                    neighbors.samples.column("second_atom"),
+                ],
+                dim=-1,
+            )
             distances = neighbors.values.reshape(-1, 3)
 
             # call the custom operator
