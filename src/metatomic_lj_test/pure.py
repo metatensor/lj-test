@@ -172,19 +172,20 @@ class LennardJonesPurePyTorch(torch.nn.Module):
         )
         single_key = Labels("_", torch.tensor([[0]], device=device))
 
+        energy_properties = Labels(["energy"], torch.tensor([[0]], device=device))
         if do_energy_per_atom:
             energy_block = TensorBlock(
                 values=energies_per_atom_values,
                 samples=per_atom_samples,
                 components=torch.jit.annotate(List[Labels], []),
-                properties=Labels(["energy"], torch.tensor([[0]], device=device)),
+                properties=energy_properties,
             )
         else:
             energy_block = TensorBlock(
                 values=energy_values,
                 samples=per_system_samples,
                 components=torch.jit.annotate(List[Labels], []),
-                properties=Labels(["energy"], torch.tensor([[0]], device=device)),
+                properties=energy_properties,
             )
 
         results: Dict[str, TensorMap] = {}
@@ -254,14 +255,14 @@ class LennardJonesPurePyTorch(torch.nn.Module):
                         values=energy_uncertainty,
                         samples=per_atom_samples,
                         components=[],
-                        properties=energy_block.properties,
+                        properties=energy_properties,
                     )
                 else:
                     uncertainty_block = TensorBlock(
                         values=energy_uncertainty.reshape(-1, 1),
                         samples=per_system_samples,
                         components=[],
-                        properties=energy_block.properties,
+                        properties=energy_properties,
                     )
 
                 result = TensorMap(single_key, [uncertainty_block])
