@@ -11,7 +11,7 @@ find_package(Torch 1.11 REQUIRED)
 add_library(${PROJECT_NAME} SHARED "src/extension.cpp")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC torch)
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
