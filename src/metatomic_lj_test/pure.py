@@ -1,8 +1,11 @@
+# ruff: noqa: UP035, UP006, UP045
+
 from typing import Dict, List, Optional
 
+import metatensor.torch as mts
 import torch
-from metatensor.torch import Labels, TensorBlock, TensorMap, multiply
-from metatomic.torch import ModelOutput, NeighborListOptions, System
+from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatomic.torch import ModelOutput, PairListOptions, System
 
 
 class LennardJonesPurePyTorch(torch.nn.Module):
@@ -13,7 +16,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
 
     def __init__(self, cutoff, epsilon, sigma):
         super().__init__()
-        self._nl_options = NeighborListOptions(
+        self._pair_options = PairListOptions(
             cutoff=cutoff, full_list=False, strict=True
         )
 
@@ -58,7 +61,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             device = system.device
             dtype = system.positions.dtype
 
-            neighbors = system.get_neighbor_list(self._nl_options)
+            neighbors = system.get_neighbor_list(self._pair_options)
             all_i = neighbors.samples.column("first_atom").to(torch.long)
             all_j = neighbors.samples.column("second_atom").to(torch.long)
 
@@ -194,7 +197,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             if "energy" in outputs:
                 results["energy"] = result
             if "energy/doubled" in outputs:
-                results["energy/doubled"] = multiply(result, 2.0)
+                results["energy/doubled"] = mts.multiply(result, 2.0)
 
         if "energy_ensemble" in outputs or "energy_ensemble/doubled" in outputs:
             # returns the same energy for all ensemble members
@@ -225,7 +228,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
 
                 result = TensorMap(single_key, [ensemble_block])
                 if variant == "energy_ensemble/doubled":
-                    result = multiply(result, 2.0)
+                    result = mts.multiply(result, 2.0)
                 results[variant] = result
 
         if "energy_uncertainty" in outputs or "energy_uncertainty/doubled" in outputs:
@@ -267,7 +270,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
 
                 result = TensorMap(single_key, [uncertainty_block])
                 if variant == "energy_uncertainty/doubled":
-                    result = multiply(result, 2.0)
+                    result = mts.multiply(result, 2.0)
                 results[variant] = result
 
         if (
@@ -296,7 +299,7 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             if "non_conservative_force" in outputs:
                 results["non_conservative_force"] = result
             if "non_conservative_force/doubled" in outputs:
-                results["non_conservative_force/doubled"] = multiply(result, 2.0)
+                results["non_conservative_force/doubled"] = mts.multiply(result, 2.0)
 
         if (
             "non_conservative_stress" in outputs
@@ -333,9 +336,9 @@ class LennardJonesPurePyTorch(torch.nn.Module):
             if "non_conservative_stress" in outputs:
                 results["non_conservative_stress"] = result
             if "non_conservative_stress/doubled" in outputs:
-                results["non_conservative_stress/doubled"] = multiply(result, 2.0)
+                results["non_conservative_stress/doubled"] = mts.multiply(result, 2.0)
 
         return results
 
-    def requested_neighbor_lists(self) -> List[NeighborListOptions]:
-        return [self._nl_options]
+    def requested_neighbor_lists(self) -> List[PairListOptions]:
+        return [self._pair_options]

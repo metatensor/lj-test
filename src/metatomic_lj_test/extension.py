@@ -1,10 +1,13 @@
+# ruff: noqa: UP035, UP006, UP045
+
 import os
 import sys
 from typing import Dict, List, Optional
 
+import metatensor.torch as mts
 import torch
-from metatensor.torch import Labels, TensorBlock, TensorMap, multiply
-from metatomic.torch import ModelOutput, NeighborListOptions, System
+from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatomic.torch import ModelOutput, PairListOptions, System
 
 _HERE = os.path.dirname(__file__)
 
@@ -33,9 +36,7 @@ class LennardJonesExtension(torch.nn.Module):
 
     def __init__(self, cutoff, epsilon, sigma):
         super().__init__()
-        self._nl_options = NeighborListOptions(
-            cutoff=cutoff, full_list=False, strict=True
-        )
+        self._nl_options = PairListOptions(cutoff=cutoff, full_list=False, strict=True)
 
         self._epsilon = epsilon
         self._sigma = sigma
@@ -136,9 +137,9 @@ class LennardJonesExtension(torch.nn.Module):
         }
 
         if "energy/doubled" in outputs:
-            results["energy/doubled"] = multiply(results["energy"], 2.0)
+            results["energy/doubled"] = mts.multiply(results["energy"], 2.0)
 
         return results
 
-    def requested_neighbor_lists(self) -> List[NeighborListOptions]:
+    def requested_neighbor_lists(self) -> List[PairListOptions]:
         return [self._nl_options]
