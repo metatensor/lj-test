@@ -1,6 +1,6 @@
 from metatomic.torch import (
     AtomisticModel,
-    ModelCapabilities,
+    LegacyModelCapabilities,
     ModelMetadata,
     ModelOutput,
 )
@@ -111,7 +111,7 @@ def lennard_jones_model(
             }
         )
 
-    capabilities = ModelCapabilities(
+    capabilities = LegacyModelCapabilities(
         length_unit=length_unit,
         interaction_range=cutoff,
         atomic_types=[atomic_type],
